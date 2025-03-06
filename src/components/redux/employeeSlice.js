@@ -9,7 +9,6 @@ export const submitEmployeeToFirebase = createAsyncThunk(
   async (employeeData, { rejectWithValue }) => {
     try {
       const response = await axios.post(FIREBASE_URL, employeeData);
-      alert("employee data submitted successfully");
 
       return { id: response.data.name, ...employeeData }; 
 

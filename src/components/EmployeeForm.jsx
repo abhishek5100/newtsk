@@ -1,173 +1,180 @@
-import React, { useState } from "react";
-import { useForm } from "react-hook-form";
+import React from "react";
+import { useForm, useFieldArray } from "react-hook-form";
 import { IoMdCloseCircle } from "react-icons/io";
 import { useDispatch, useSelector } from "react-redux";
-import {submitEmployeeToFirebase } from "./redux/employeeSlice";
+import { submitEmployeeToFirebase } from "./redux/employeeSlice";
+import { Link, useNavigate } from "react-router-dom";
 
 const EmployeeForm = () => {
-  const { register, handleSubmit, formState: { errors } } = useForm();
-  const loading = useSelector((state) => state.employee.loading); 
-  const submittedData = useSelector((state) => state.employee.submittedData); 
-  console.log(submittedData)
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const loading = useSelector((state) => state.employee.loading);
 
+  const {
+    register,
+    handleSubmit,
+    control,
+    formState: { errors },
+  } = useForm({
+    defaultValues: {
+      skills: [""],
+      education: [],
+    },
+  });
 
+  const { fields: skills, append: addSkill, remove: removeSkill } = useFieldArray({
+    control,
+    name: "skills",
+  });
 
-  const dispatch = useDispatch()
-  const [skills, setSkills] = useState([]);
-
-  const [education, setEducation] = useState([]);
-
-  const addSkill = () => setSkills([...skills, ""]);
-  const removeSkill = (index) => setSkills(skills.filter((_, i) => i !== index));
-
-  const addEducation = () => setEducation([...education, { degree: "", startDate: "", endDate: "", percentage: "" }]);
-
-  const removeEducation = (index) => setEducation(education.filter((_, i) => i !== index));
-
-
-
+  const { fields: education, append: addEducation, remove: removeEducation } = useFieldArray({
+    control,
+    name: "education",
+  });
 
   const onSubmit = (data) => {
-    data.skills = skills;
-    data.education = education;
-    dispatch(submitEmployeeToFirebase(data)); 
+    dispatch(submitEmployeeToFirebase(data));
+    if (!loading) {
+      navigate("/");
+    }
   };
 
- 
   return (
-    <div className="max-w-full p-6 border border-black bg-white justify-center items-center flex flex-col shadow-md rounded-lg">
-      <h2 className="text-xl text-blue-500 font-bold mb-4 ">Employee Registration</h2>
-      <form onSubmit={handleSubmit(onSubmit)} className=" border-black p-4 shadow-2xl rounded-xl">
-        
-        <label className="block font-semibold ">First Name</label>
+    <div className="max-w-full p-6 bg-white flex flex-col justify-center items-center shadow-md rounded-lg">
+     <div className="flex  gap-5">
+     <h2 className="text-xl text-blue-500 font-bold mb-4">Employee Registration</h2>
+     <Link to="/" className="underline  text-bold">Check employee data list </Link>
+     </div>
+
+      <form onSubmit={handleSubmit(onSubmit)} className="w-[400px] p-4 shadow-2xl rounded-xl">
+
+        <label className="block font-semibold">First Name</label>
         <input
           type="text"
-          {...register("first")}
-          placeholder="First name"
-          className="w-full p-2 border rounded mb-2"
+          placeholder="First Name"
+          {...register("first", { required: "First name is required" })}
+          className={`w-full p-2 outline-none border rounded mb-2 `}
         />
+        <p className="text-red-500">{errors.first?.message}</p>
+
 
         <label className="block font-semibold">Last Name</label>
-        <input
-          type="text"
-          {...register("last")}
-          placeholder="Last name"
-          className="w-full p-2 border rounded mb-2"
+        <input type="text"
+          placeholder="Last Name"
+          {...register("last", { required: "Last name is required" })}
+          className={`w-full p-2 outline-none border rounded mb-2 `}
         />
+        <p className="text-red-500">{errors.last?.message}</p>
 
         <label className="block font-semibold">Email</label>
         <input
           type="email"
-          {...register("email")}
           placeholder="Email"
-          className="w-full p-2 border rounded mb-2"
+          {...register("email", {
+            required: "Email is required",
+
+            pattern: {
+              value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/,
+              message: "Enter a valid email address"
+            }
+          })}
+          className={`w-full p-2 outline-none border rounded mb-2`}
         />
         <p className="text-red-500">{errors.email?.message}</p>
 
-        <label className="block font-semibold">Contact Number</label>
+        <label className="block font-semibold">Contact</label>
         <input
           type="text"
-          {...register("contact")}
           placeholder="Contact"
-          className="w-full p-2 border rounded mb-2"
-        />
 
-        <button type="button" onClick={addSkill} className="text-red-500 px-3 py-1 rounded mb-4">
+          {...register("contact", {
+            required: "Contact is required",
+            pattern: { value: /^[0-9]+$/, message: "Only numbers are allowed" }
+          })}
+          className={`w-full p-2 outline-none border rounded mb-2`}
+        />
+        <p className="text-red-500">{errors.contact?.message}</p>
+
+
+        {/* skills flieds here  */}
+
+
+        <label className="block font-semibold">Skills</label>
+        {skills.map((skill, index) => (
+
+          <>
+            <div key={skill.id} className="flex items-center gap-2 mb-2">
+              <input {...register(`skills.${index}`, { required: "skill is required" })}
+                className={`w-full p-2 outline-none border rounded mb-2`}
+                placeholder="Enter skill" />
+
+              {skills.length > 1 && (
+                <button type="button" onClick={() => removeSkill(index)}>
+                  <IoMdCloseCircle className="text-red-500" />
+                </button>
+              )}
+            </div>
+            <p className="text-red-500">{errors.skills?.[index]?.message}</p>
+
+          </>
+        ))}
+        <button type="button" onClick={() => addSkill("")}
+          className="text-blue-500 px-3 py-1 rounded mb-4">
           + Add More Skills
         </button>
 
- 
-        <label className="block font-semibold">Skills</label>
 
-        {skills.map((skill, index) => (
 
-          <div key={index} className="flex items-center gap-2 mb-2">
-            <input
-              type="text"
-              value={skill}
-              onChange={(e) => {
-                const updatedSkills = [...skills];
-                updatedSkills[index] = e.target.value;
-                setSkills(updatedSkills);
-              }}
-              placeholder="Enter skill"
-              className="w-full p-2 border rounded"
-            />
+        {/* education fields  here */}
 
-            {skills.length > 1 && (
-              <button type="button" onClick={() => removeSkill(index)}>
-                <IoMdCloseCircle className="text-red-500" />
-              </button>
-            )}
-          </div>
-        ))}
-      
-        <button type="button" onClick={addEducation} className="text-red-500 px-4 py-2 rounded mb-4">
-          + Add Education
-        </button>
 
         <label className="block font-semibold">Education</label>
         {education.map((edu, index) => (
-          <div key={index} className="border p-4 mb-2 rounded">
-            <label className="block font-semibold">Degree</label>
-            <input
-              type="text"
-              value={edu.degree}
-              onChange={(e) => {
-                const updatedEducation = [...education];
-                updatedEducation[index].degree = e.target.value;
-                setEducation(updatedEducation);
-              }}
-              placeholder="Highest Education"
-              className="w-full p-2 border rounded mb-2"
-            />
-            <label className="block font-semibold">Start Date</label>
-            <input
-              type="date"
-              value={edu.startDate}
-              onChange={(e) => {
-                const updatedEducation = [...education];
-                updatedEducation[index].startDate = e.target.value;
-                setEducation(updatedEducation);
-              }}
-              className="w-full p-2 border rounded mb-2"
-            />
+          <div key={edu.id} className="border p-4 mb-2 rounded">
+            <label>Degree</label>
+            <input placeholder="degree" {...register(`education.${index}.degree`, { required: "Degree is required" })}
 
-            <label className="block font-semibold">End Date</label>
-            <input
-              type="date"
-              value={edu.endDate}
-              onChange={(e) => {
-                const updatedEducation = [...education];
-                updatedEducation[index].endDate = e.target.value;
-                setEducation(updatedEducation);
-              }}
-              className="w-full p-2 border rounded mb-2"
-            />
-            <label className="block font-semibold">Percentage</label>
-            <input
-              type="number"
-              value={edu.percentage}
-              onChange={(e) => {
-                const updatedEducation = [...education];
-                updatedEducation[index].percentage = e.target.value;
-                setEducation(updatedEducation);
-              }}
-              placeholder="Percentage"
-              className="w-full p-2 border rounded"
-            />
+              className="w-full p-2 border rounded mb-2" />
+            <p className="text-red-500">{errors.education?.[index]?.degree?.message}</p>
+
+            <label>Start Date</label>
+            <input type="date" {...register(`education.${index}.startDate`, { required: "Start date is required" })}
+
+              className="w-full p-2 border rounded mb-2" />
+            <p className="text-red-500">{errors.education?.[index]?.startDate?.message}</p>
+
+            <label>End Date</label>
+            <input type="date" {...register(`education.${index}.endDate`, { required: "End date is required" })}
+              className="w-full p-2 border rounded mb-2" />
+            <p className="text-red-500">{errors.education?.[index]?.endDate?.message}</p>
+
+            <label>Percentage</label>
+            <input placeholder="percentage" type="number"
+              {...register(`education.${index}.percentage`,
+                {
+                  required: "Percentage is required",
+                  min: { value: 0, message: "Percentage cannot be negative" },
+                  max: { value: 100, message: "Percentage cannot exceed 100" }
+                })}
+              className="w-full p-2 border rounded" />
+            <p className="text-red-500">{errors.education?.[index]?.percentage?.message}</p>
 
             {education.length > 1 && (
-              <button type="button" onClick={() => removeEducation(index)} className="mt-2">
+              <button type="button" onClick={() => removeEducation(index)}>
                 <IoMdCloseCircle className="text-red-500" />
               </button>
             )}
           </div>
         ))}
-  
-        <button type="submit" className="text-green-500 border border-black px-4 py-2 rounded w-full mt-4">
-          {loading ? "submiting..." : "Submit"}
+        <button type="button" onClick={() => addEducation({ degree: "", startDate: "", endDate: "", percentage: "" })}
+          className="text-blue-500 px-3 py-1 rounded mb-4">
+          + Add Education
         </button>
+
+        <button type="submit" className="text-green-500 border border-black px-4 py-2 rounded w-full mt-4">
+          {loading ? "Submitting..." : "Submit"}
+        </button>
+
       </form>
     </div>
   );
